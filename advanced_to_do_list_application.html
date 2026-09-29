@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow Pro - Advanced Task Manager</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.25s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+
+  <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 transition-all">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+            <i data-lucide="check-square" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <span class="font-bold text-base tracking-tight block text-slate-900 leading-none">TaskFlow Pro</span>
+            <span class="text-[11px] text-slate-400 font-medium tracking-wide">Advanced Workspace</span>
+          </div>
+        </div>
+        <!-- Mobile menu toggle button if needed -->
+        <button id="mobileMenuBtn" onclick="toggleMobileSidebar()" class="sm:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Search & Quick Action Header Tools -->
+      <div class="flex items-center gap-3 w-full sm:w-auto">
+        <div class="relative w-full sm:w-72">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input type="text" id="searchInput" placeholder="Search tasks, descriptions..." 
+            class="w-full pl-10 pr-4 py-2 bg-slate-100/80 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-xl text-sm transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10">
+        </div>
+        <button onclick="openExportModal()" title="Export/Import Data" class="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition hidden sm:flex items-center justify-center">
+          <i data-lucide="download" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 w-full flex-grow grid grid-cols-1 md:grid-cols-4 gap-6">
+    
+    <!-- Sidebar Navigation / Filters -->
+    <aside id="sidebarPanel" class="md:col-span-1 space-y-4 md:block hidden">
+      <!-- Status Filters Card -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-1.5">
+        <h2 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Views</h2>
+        <button onclick="setFilter('all')" id="filter-all" class="filter-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium bg-blue-50 text-blue-700 transition">
+          <span class="flex items-center gap-2.5"><i data-lucide="layout-grid" class="w-4 h-4"></i> All Tasks</span>
+          <span id="count-all" class="text-xs bg-blue-200/60 text-blue-800 px-2.5 py-0.5 rounded-full font-semibold">0</span>
+        </button>
+        <button onclick="setFilter('active')" id="filter-active" class="filter-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+          <span class="flex items-center gap-2.5"><i data-lucide="circle" class="w-4 h-4"></i> Active</span>
+          <span id="count-active" class="text-xs bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full font-semibold">0</span>
+        </button>
+        <button onclick="setFilter('completed')" id="filter-completed" class="filter-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+          <span class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Completed</span>
+          <span id="count-completed" class="text-xs bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full font-semibold">0</span>
+        </button>
+        <button onclick="setFilter('urgent')" id="filter-urgent" class="filter-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+          <span class="flex items-center gap-2.5"><i data-lucide="alert-octagon" class="w-4 h-4 text-rose-500"></i> Urgent Priority</span>
+          <span id="count-urgent" class="text-xs bg-rose-50 text-rose-700 px-2.5 py-0.5 rounded-full font-semibold">0</span>
+        </button>
+      </div>
+
+      <!-- Project Filters Card -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
+        <div class="flex items-center justify-between px-2 mb-1">
+          <h2 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Projects / Folders</h2>
+          <button onclick="promptNewProject()" class="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> New
+          </button>
+        </div>
+        <div id="projectFilters" class="space-y-1">
+          <!-- Dynamically populated projects list -->
+        </div>
+      </div>
+
+      <!-- Productivity Insights Widget -->
+      <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 rounded-2xl shadow-md space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Completion Rate</span>
+          <span id="completionPercentage" class="text-sm font-bold text-emerald-400">0%</span>
+        </div>
+        <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+          <div id="progressBar" class="bg-emerald-400 h-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">Keep checking off your subtasks and items to boost daily efficiency.</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Task Board -->
+    <section class="md:col-span-3 space-y-5">
+      
+      <!-- Interactive Add Task Form Card -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm transition hover:shadow-md">
+        <form id="taskForm" onsubmit="handleAddTask(event)" class="space-y-4">
+          <div class="flex gap-2.5">
+            <div class="w-full relative">
+              <input type="text" id="taskTitle" placeholder="What needs to be accomplished today?" required
+                class="w-full px-4 py-2.5 bg-slate-50/50 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
+            </div>
+          </div>
+
+          <textarea id="taskDesc" placeholder="Add extra notes, descriptions or links (optional)..." rows="2"
+            class="w-full px-4 py-2.5 bg-slate-50/50 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"></textarea>
+
+          <!-- Task Options Toolbar -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- Priority Select Dropdown -->
+              <div class="relative">
+                <select id="taskPriority" class="text-xs bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-4 focus:ring-blue-500/10 font-medium text-slate-700 cursor-pointer transition">
+                  <option value="low">🟢 Low Priority</option>
+                  <option value="medium" selected>🔵 Medium Priority</option>
+                  <option value="high">🟠 High Priority</option>
+                  <option value="urgent">🚨 Urgent Priority</option>
+                </select>
+              </div>
+
+              <!-- Due Date Picker -->
+              <div class="relative">
+                <input type="date" id="taskDueDate" title="Due Date"
+                  class="text-xs bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-4 focus:ring-blue-500/10 font-medium text-slate-700 cursor-pointer transition">
+              </div>
+
+              <!-- Project Category Select -->
+              <div class="relative">
+                <select id="taskProject" class="text-xs bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-4 focus:ring-blue-500/10 font-medium text-slate-700 cursor-pointer transition">
+                  <!-- Dynamically filled -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Task
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Task Controls & Bulk Action Header -->
+      <div class="flex flex-wrap items-center justify-between gap-3 px-1">
+        <div class="flex items-center gap-2">
+          <h2 id="currentViewTitle" class="text-base font-bold text-slate-800 tracking-tight">All Tasks</h2>
+          <span id="activeFilteredCount" class="text-xs bg-slate-200/70 text-slate-600 px-2 py-0.5 rounded-full font-medium">0 items</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="sortBy" onchange="handleSortChange(this.value)" class="text-xs bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="date-desc">Newest Added</option>
+            <option value="date-asc">Oldest Added</option>
+            <option value="priority">Priority Order</option>
+            <option value="due">Due Date</option>
+          </select>
+          <button onclick="clearCompletedTasks()" class="text-xs text-slate-500 hover:text-rose-600 bg-white border border-slate-200 hover:border-rose-200 px-3 py-1.5 rounded-xl transition font-medium">
+            Clear Completed
+          </button>
+        </div>
+      </div>
+
+      <!-- Dynamic Task List Container -->
+      <div id="taskList" class="space-y-3">
+        <!-- Rendered via JavaScript -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Subtask Creation / Edit Quick Modal / Export Modal -->
+  <div id="exportModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fade-in">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-slate-900 text-base">Backup & Restore Tasks</h3>
+        <button onclick="closeExportModal()" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <p class="text-xs text-slate-500 leading-relaxed">You can back up your task database by exporting JSON code, or paste a backup to restore your tasks instantly.</p>
+      <textarea id="exportJsonArea" rows="6" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button onclick="importTasksJson()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Import JSON</button>
+        <button onclick="copyExportJson()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition">Copy Backup</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Application State
+    let tasks = JSON.parse(localStorage.getItem('taskflow_tasks')) || [
+      {
+        id: '1748000001',
+        title: 'Complete quarterly financial review',
+        description: 'Verify balance sheets with accounting department and compile team report.',
+        status: 'active',
+        priority: 'urgent',
+        dueDate: '2026-10-15',
+        project: 'Work',
+        createdAt: 1748000001000,
+        subtasks: [
+          { id: 'sub_1', title: 'Audit invoices folder', completed: true },
+          { id: 'sub_2', title: 'Schedule meeting with Director', completed: false }
+        ]
+      },
+      {
+        id: '1748000002',
+        title: 'Renew gym membership and plan workouts',
+        description: 'Focus on endurance and strength training schedules for Q4.',
+        status: 'active',
+        priority: 'medium',
+        dueDate: '2026-10-08',
+        project: 'Personal',
+        createdAt: 1748000002000,
+        subtasks: [
+          { id: 'sub_3', title: 'Buy protein supplements', completed: true }
+        ]
+      }
+    ];
+
+    let projects = JSON.parse(localStorage.getItem('taskflow_projects')) || ['Work', 'Personal', 'Shopping', 'Health'];
+    let currentFilter = 'all';
+    let currentProjectFilter = 'all';
+    let currentSort = 'date-desc';
+    let searchQuery = '';
+
+    // Priority Visual Configuration
+    const priorityConfig = {
+      low: { label: 'Low', badge: 'bg-slate-100 text-slate-600 border-slate-200', icon: 'chevron-down' },
+      medium: { label: 'Medium', badge: 'bg-blue-50 text-blue-700 border-blue-100', icon: 'minus' },
+      high: { label: 'High', badge: 'bg-amber-50 text-amber-700 border-amber-200', icon: 'chevron-up' },
+      urgent: { label: 'Urgent', badge: 'bg-rose-50 text-rose-700 border-rose-200', icon: 'alert-triangle' }
+    };
+
+    // Initialize application runtime
+    function initApp() {
+      renderProjectDropdowns();
+      renderProjectSidebarList();
+      renderTasks();
+      updateDashboardStats();
+      lucide.createIcons();
+    }
+
+    // Persist to local storage & refresh view
+    function saveAndSync() {
+      localStorage.setItem('taskflow_tasks', JSON.stringify(tasks));
+      localStorage.setItem('taskflow_projects', JSON.stringify(projects));
+      renderProjectDropdowns();
+      renderProjectSidebarList();
+      renderTasks();
+      updateDashboardStats();
+      lucide.createIcons();
+    }
+
+    // Add Task Handler
+    function handleAddTask(e) {
+      e.preventDefault();
+      const titleInput = document.getElementById('taskTitle');
+      const descInput = document.getElementById('taskDesc');
+      const prioritySelect = document.getElementById('taskPriority');
+      const dueDateInput = document.getElementById('taskDueDate');
+      const projectSelect = document.getElementById('taskProject');
+
+      const title = titleInput.value.trim();
+      if (!title) return;
+
+      const newTask = {
+        id: Date.now().toString(),
+        title,
+        description: descInput.value.trim(),
+        status: 'active',
+        priority: prioritySelect.value,
+        dueDate: dueDateInput.value,
+        project: projectSelect.value || 'Work',
+        createdAt: Date.now(),
+        subtasks: []
+      };
+
+      tasks.unshift(newTask);
+      titleInput.value = '';
+      descInput.value = '';
+      dueDateInput.value = '';
+      prioritySelect.value = 'medium';
+      
+      saveAndSync();
+    }
+
+    // Toggle Task Complete Status
+    function toggleTaskStatus(id) {
+      tasks = tasks.map(t => {
+        if (t.id === id) {
+          t.status = t.status === 'active' ? 'completed' : 'active';
+        }
+        return t;
+      });
+      saveAndSync();
+    }
+
+    // Delete Task
+    function deleteTask(id) {
+      tasks = tasks.filter(t => t.id !== id);
+      saveAndSync();
+    }
+
+    // Subtask handlers
+    function addSubtaskPrompt(taskId) {
+      const subTitle = prompt('Enter subtask name:');
+      if (!subTitle || !subTitle.trim()) return;
+
+      tasks = tasks.map(t => {
+        if (t.id === taskId) {
+          if (!t.subtasks) t.subtasks = [];
+          t.subtasks.push({
+            id: 'sub_' + Date.now(),
+            title: subTitle.trim(),
+            completed: false
+          });
+        }
+        return t;
+      });
+      saveAndSync();
+    }
+
+    function toggleSubtask(taskId, subId) {
+      tasks = tasks.map(t => {
+        if (t.id === taskId) {
+          t.subtasks = t.subtasks.map(s => {
+            if (s.id === subId) s.completed = !s.completed;
+            return s;
+          });
+        }
+        return t;
+      });
+      saveAndSync();
+    }
+
+    function deleteSubtask(taskId, subId) {
+      tasks = tasks.map(t => {
+        if (t.id === taskId) {
+          t.subtasks = t.subtasks.filter(s => s.id !== subId);
+        }
+        return t;
+      });
+      saveAndSync();
+    }
+
+    // Project management
+    function promptNewProject() {
+      const pName = prompt('Enter new project/folder name:');
+      if (!pName || !pName.trim()) return;
+      const formatted = pName.trim();
+      if (!projects.includes(formatted)) {
+        projects.push(formatted);
+        currentProjectFilter = formatted;
+        saveAndSync();
+      }
+    }
+
+    function deleteProject(projName, event) {
+      event.stopPropagation();
+      if (confirm(`Delete project "${projName}"? Tasks inside will be moved to Work.`)) {
+        projects = projects.filter(p => p !== projName);
+        tasks = tasks.map(t => {
+          if (t.project === projName) t.project = 'Work';
+          return t;
+        });
+        if (currentProjectFilter === projName) currentProjectFilter = 'all';
+        saveAndSync();
+      }
+    }
+
+    // Filters & Sorting setup
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-50', 'text-blue-700');
+        btn.classList.add('text-slate-600', 'hover:bg-slate-50');
+      });
+      const activeBtn = document.getElementById(`filter-${filter}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-blue-50', 'text-blue-700');
+        activeBtn.classList.remove('text-slate-600', 'hover:bg-slate-50');
+      }
+      
+      const titles = { all: 'All Tasks', active: 'Active Tasks', completed: 'Completed Tasks', urgent: 'Urgent Priority Tasks' };
+      document.getElementById('currentViewTitle').innerText = titles[filter] || 'Tasks';
+      renderTasks();
+    }
+
+    function setProjectFilter(proj) {
+      currentProjectFilter = proj;
+      document.getElementById('currentViewTitle').innerText = proj === 'all' ? 'All Projects' : `Project: #${proj}`;
+      renderTasks();
+    }
+
+    function handleSortChange(sortVal) {
+      currentSort = sortVal;
+      renderTasks();
+    }
+
+    // Search input listener
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      searchQuery = e.target.value.toLowerCase().trim();
+      renderTasks();
+    });
+
+    function clearCompletedTasks() {
+      if (confirm('Are you sure you want to clear all completed tasks?')) {
+        tasks = tasks.filter(t => t.status !== 'completed');
+        saveAndSync();
+      }
+    }
+
+    // Modal Export / Import handlers
+    function openExportModal() {
+      document.getElementById('exportJsonArea').value = JSON.stringify({ tasks, projects }, null, 2);
+      document.getElementById('exportModal').classList.remove('hidden');
+    }
+    function closeExportModal() {
+      document.getElementById('exportModal').classList.add('hidden');
+    }
+    function copyExportJson() {
+      const area = document.getElementById('exportJsonArea');
+      area.select();
+      document.execCommand('copy');
+      alert('Backup JSON copied to clipboard successfully!');
+    }
+    function importTasksJson() {
+      try {
+        const parsed = JSON.parse(document.getElementById('exportJsonArea').value);
+        if (parsed.tasks && Array.isArray(parsed.tasks)) {
+          tasks = parsed.tasks;
+          if (parsed.projects && Array.isArray(parsed.projects)) projects = parsed.projects;
+          saveAndSync();
+          closeExportModal();
+          alert('Tasks restored successfully!');
+        } else {
+          alert('Invalid backup structure.');
+        }
+      } catch (err) {
+        alert('Parsing error: Please check your JSON syntax.');
+      }
+    }
+
+    // Rendering dropdowns and sidebar lists
+    function renderProjectDropdowns() {
+      const select = document.getElementById('taskProject');
+      select.innerHTML = projects.map(p => `<option value="${p}">📁 ${p}</option>`).join('');
+    }
+
+    function renderProjectSidebarList() {
+      const container = document.getElementById('projectFilters');
+      let html = `
+        <button onclick="setProjectFilter('all')" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition ${currentProjectFilter === 'all' ? 'bg-slate-100 font-bold text-slate-900' : 'text-slate-600 hover:bg-slate-50'}">
+          <span>📁 All Folders</span>
+          <span class="text-[10px] text-slate-400 font-semibold">${tasks.length}</span>
+        </button>
+      `;
+
+      html += projects.map(p => {
+        const count = tasks.filter(t => t.project === p).length;
+        const isActive = currentProjectFilter === p;
+        return `
+          <div onclick="setProjectFilter('${p}')" class="group flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium cursor-pointer transition ${isActive ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}">
+            <span class="truncate"># ${escapeHtml(p)}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-blue-200/60 text-blue-800' : 'bg-slate-100 text-slate-500'}">${count}</span>
+              ${projects.length > 1 ? `<button onclick="deleteProject('${p}', event)" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-600 p-0.5 transition"><i data-lucide="x" class="w-3 h-3"></i></button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = html;
+    }
+
+    // Update statistics counters & progress bar
+    function updateDashboardStats() {
+      const total = tasks.length;
+      const activeCount = tasks.filter(t => t.status === 'active').length;
+      const completedCount = tasks.filter(t => t.status === 'completed').length;
+      const urgentCount = tasks.filter(t => t.priority === 'urgent' && t.status === 'active').length;
+
+      document.getElementById('count-all').innerText = total;
+      document.getElementById('count-active').innerText = activeCount;
+      document.getElementById('count-completed').innerText = completedCount;
+      document.getElementById('count-urgent').innerText = urgentCount;
+
+      const percentage = total === 0 ? 0 : Math.round((completedCount / total) * 100);
+      document.getElementById('completionPercentage').innerText = percentage + '%';
+      document.getElementById('progressBar').style.width = percentage + '%';
+    }
+
+    // Core Task Rendering Engine
+    function renderTasks() {
+      const container = document.getElementById('taskList');
+
+      // Filter Pipeline
+      let filtered = tasks.filter(t => {
+        // Status or Urgent filter
+        let matchesStatus = true;
+        if (currentFilter === 'active') matchesStatus = t.status === 'active';
+        else if (currentFilter === 'completed') matchesStatus = t.status === 'completed';
+        else if (currentFilter === 'urgent') matchesStatus = t.priority === 'urgent' && t.status === 'active';
+
+        // Project filter
+        let matchesProject = currentProjectFilter === 'all' || t.project === currentProjectFilter;
+
+        // Search query filter
+        let matchesSearch = true;
+        if (searchQuery) {
+          matchesSearch = t.title.toLowerCase().includes(searchQuery) || (t.description && t.description.toLowerCase().includes(searchQuery));
+        }
+
+        return matchesStatus && matchesProject && matchesSearch;
+      });
+
+      // Sorting Pipeline
+      filtered.sort((a, b) => {
+        if (currentSort === 'date-desc') return b.createdAt - a.createdAt;
+        if (currentSort === 'date-asc') return a.createdAt - b.createdAt;
+        if (currentSort === 'priority') {
+          const ranks = { urgent: 4, high: 3, medium: 2, low: 1 };
+          return (ranks[b.priority] || 1) - (ranks[a.priority] || 1);
+        }
+        if (currentSort === 'due') {
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          return new Date(a.dueDate) - new Date(b.dueDate);
+        }
+        return 0;
+      });
+
+      document.getElementById('activeFilteredCount').innerText = `${filtered.length} items`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white border border-slate-200/80 rounded-2xl p-12 text-center space-y-3 shadow-sm animate-fade-in">
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+              <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-sm font-bold text-slate-700">No tasks found</h3>
+            <p class="text-xs text-slate-400 max-w-xs mx-auto">You're all caught up! Create a new task above or switch your active view filters.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = filtered.map(t => {
+        const isDone = t.status === 'completed';
+        const pConf = priorityConfig[t.priority] || priorityConfig['medium'];
+        
+        // Subtasks calculations
+        const subs = t.subtasks || [];
+        const completedSubs = subs.filter(s => s.completed).length;
+
+        return `
+          <div class="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all space-y-3 animate-fade-in group">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-3.5 flex-grow">
+                <!-- Checkbox toggle -->
+                <button onclick="toggleTaskStatus('${t.id}')" class="mt-0.5 text-slate-300 hover:text-blue-600 transition flex-shrink-0">
+                  ${isDone ? '<i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-500 fill-emerald-50"></i>' : '<i data-lucide="circle" class="w-6 h-6"></i>'}
+                </button>
+                
+                <div class="space-y-1.5 flex-grow">
+                  <h3 class="font-semibold text-sm sm:text-base text-slate-800 leading-snug ${isDone ? 'line-through text-slate-400' : ''}">${escapeHtml(t.title)}</h3>
+                  ${t.description ? `<p class="text-xs text-slate-500 leading-relaxed ${isDone ? 'line-through text-slate-300' : ''}">${escapeHtml(t.description)}</p>` : ''}
+                  
+                  <!-- Metadata Badges -->
+                  <div class="flex flex-wrap items-center gap-2 pt-1">
+                    <span class="text-[10px] px-2.5 py-0.5 rounded-lg border font-semibold uppercase tracking-wider flex items-center gap-1 ${pConf.badge}">
+                      <i data-lucide="${pConf.icon}" class="w-3 h-3"></i> ${pConf.label}
+                    </span>
+
+                    ${t.dueDate ? `
+                      <span class="flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-100/80 px-2.5 py-0.5 rounded-lg">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i> ${t.dueDate}
+                      </span>` : ''}
+
+                    <span class="text-[11px] font-medium text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-lg">
+                      #${escapeHtml(t.project)}
+                    </span>
+
+                    ${subs.length > 0 ? `
+                      <span class="flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">
+                        <i data-lucide="list-checks" class="w-3.5 h-3.5 text-slate-400"></i> ${completedSubs}/${subs.length} subtasks
+                      </span>` : ''}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Task Card Actions Menu -->
+              <div class="flex items-center gap-1 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onclick="addSubtaskPrompt('${t.id}')" title="Add Subtask" class="p-2 text-slate-400 hover:text-blue-600 rounded-xl hover:bg-slate-50 transition">
+                  <i data-lucide="list-plus" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deleteTask('${t.id}')" title="Delete Task" class="p-2 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-slate-50 transition">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Subtasks Checklist Section -->
+            ${subs.length > 0 ? `
+              <div class="pl-9 pt-3 border-t border-slate-100 space-y-2">
+                ${subs.map(s => `
+                  <div class="flex items-center justify-between text-xs group/sub">
+                    <label class="flex items-center gap-2.5 cursor-pointer flex-grow">
+                      <input type="checkbox" ${s.completed ? 'checked' : ''} onchange="toggleSubtask('${t.id}', '${s.id}')" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
+                      <span class="${s.completed ? 'line-through text-slate-400' : 'text-slate-700'}">${escapeHtml(s.title)}</span>
+                    </label>
+                    <button onclick="deleteSubtask('${t.id}', '${s.id}')" class="opacity-0 group-hover/sub:opacity-100 text-slate-300 hover:text-rose-500 p-1 transition"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // Responsive Mobile Sidebar Toggle
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('sidebarPanel');
+      sidebar.classList.toggle('hidden');
+    }
+
+    // XSS Sanitizer Utility
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Initialize application on load
+    window.onload = initApp;
+  </script>
+</body>
+</html>
