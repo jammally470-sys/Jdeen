@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Todo List</title>
+  <style>
+    :root { --bg:#eef1f5; --ink:#1b2430; --muted:#8a94a3; --line:#d5dbe3; --accent:#0f766e; --card:#ffffff; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 40px 16px; }
+    h1 { font-size: 28px; margin: 0 0 4px; }
+    .count { color: var(--muted); margin: 0 0 20px; }
+    .add { display:flex; gap:8px; margin-bottom:16px; }
+    input[type=text] { flex:1; padding:12px 14px; font-size:16px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); }
+    button { font: inherit; cursor:pointer; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:8px; padding:8px 10px; }
+    button:hover { border-color: var(--accent); }
+    button.primary { background:var(--accent); border-color:var(--accent); color:#fff; padding:12px 18px; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    ul { list-style:none; margin:0; padding:0; }
+    li { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+    li.dragging { opacity:.4; }
+    li.over { border-color: var(--accent); border-style: dashed; }
+    .handle { cursor:grab; color:var(--muted); user-select:none; }
+    .text { flex:1; word-break:break-word; }
+    .done .text { text-decoration: line-through; color: var(--muted); }
+    .actions { display:flex; gap:4px; }
+    .actions button { padding:4px 8px; }
+    .empty { text-align:center; color:var(--muted); padding:32px 0; }
+    .error { color:#b42318; margin-bottom:12px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Talks to the Python backend. Every call returns the updated list.
+    async function api(path = "", method = "GET", body) {
+      const res = await fetch("/api/todos" + path, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (!res.ok) throw new Error("Something went wrong. Is the server running?");
+      return res.json();
+    }
+
+    function App() {
+      const [todos, setTodos] = useState([]);
+      const [newText, setNewText] = useState("");
+      const [editingId, setEditingId] = useState(null);
+      const [editText, setEditText] = useState("");
+      const [dragId, setDragId] = useState(null);
+      const [overId, setOverId] = useState(null);
+      const [error, setError] = useState("");
+
+      // Run an API call, save the returned list, and show any error.
+      async function update(call) {
+        try {
+          setTodos(await call());
+          setError("");
+        } catch (e) {
+          setError(e.message);
+        }
+      }
+
+      useEffect(() => { update(() => api()); }, []);
+
+      function addTodo(e) {
+        e.preventDefault();
+        if (!newText.trim()) return;
+        update(() => api("", "POST", { text: newText }));
+        setNewText("");
+      }
+
+      function saveEdit(id) {
+        if (editText.trim()) update(() => api("/" + id, "PATCH", { text: editText }));
+        setEditingId(null);
+      }
+
+      function move(fromIndex, toIndex) {
+        if (toIndex < 0 || toIndex >= todos.length || fromIndex === toIndex) return;
+        const next = [...todos];
+        const [item] = next.splice(fromIndex, 1);
+        next.splice(toIndex, 0, item);
+        setTodos(next); // update the screen right away
+        update(() => api("/order", "PUT", { ids: next.map((t) => t.id) }));
+      }
+
+      function drop(targetId) {
+        const from = todos.findIndex((t) => t.id === dragId);
+        const to = todos.findIndex((t) => t.id === targetId);
+        setDragId(null);
+        setOverId(null);
+        move(from, to);
+      }
+
+      const remaining = todos.filter((t) => !t.done).length;
+
+      return (
+        <div className="wrap">
+          <h1>My todo list</h1>
+          <p className="count">{remaining} left to do</p>
+
+          <form className="add" onSubmit={addTodo}>
+            <input
+              type="text"
+              value={newText}
+              onChange={(e) => setNewText(e.target.value)}
+              placeholder="What needs doing?"
+              aria-label="New todo"
+            />
+            <button className="primary" type="submit">Add</button>
+          </form>
+
+          {error && <div className="error">{error}</div>}
+
+          {todos.length === 0 ? (
+            <div className="empty">Nothing here yet. Add your first todo above.</div>
+          ) : (
+            <ul>
+              {todos.map((todo, i) => (
+                <li
+                  key={todo.id}
+                  className={[todo.done ? "done" : "", dragId === todo.id ? "dragging" : "", overId === todo.id && dragId !== todo.id ? "over" : ""].join(" ")}
+                  draggable={editingId !== todo.id}
+                  onDragStart={() => setDragId(todo.id)}
+                  onDragOver={(e) => { e.preventDefault(); setOverId(todo.id); }}
+                  onDrop={() => drop(todo.id)}
+                  onDragEnd={() => { setDragId(null); setOverId(null); }}
+                >
+                  <span className="handle" title="Drag to reorder">⠿</span>
+                  <input
+                    type="checkbox"
+                    checked={todo.done}
+                    onChange={() => update(() => api("/" + todo.id, "PATCH", { done: !todo.done }))}
+                    aria-label={"Mark done: " + todo.text}
+                  />
+
+                  {editingId === todo.id ? (
+                    <input
+                      type="text"
+                      autoFocus
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEdit(todo.id);
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                    />
+                  ) : (
+                    <span className="text">{todo.text}</span>
+                  )}
+
+                  <div className="actions">
+                    {editingId === todo.id ? (
+                      <button onClick={() => saveEdit(todo.id)}>Save</button>
+                    ) : (
+                      <>
+                        <button onClick={() => move(i, i - 1)} disabled={i === 0} aria-label="Move up">↑</button>
+                        <button onClick={() => move(i, i + 1)} disabled={i === todos.length - 1} aria-label="Move down">↓</button>
+                        <button onClick={() => { setEditingId(todo.id); setEditText(todo.text); }}>Edit</button>
+                        <button onClick={() => update(() => api("/" + todo.id, "DELETE"))}>Delete</button>
+                      </>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
